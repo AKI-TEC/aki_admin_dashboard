@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="aki_admin_dashboard.AdminDashboard">
+    <div class="aki-admin-dashboard d-flex flex-column h-100 bg-light">
+
+        <!-- ── Page header ── -->
+        <div class="aki-dashboard-header d-flex align-items-center px-4 py-3 bg-white border-bottom shadow-sm">
+            <i class="fa fa-tachometer fa-lg text-primary me-2" />
+            <h4 class="mb-0 fw-bold text-dark">Admin Dashboard</h4>
+            <div class="aki-company-scope ms-auto">
+                <i class="fa fa-building-o" />
+                <span t-esc="companyScopeLabel" />
+            </div>
+        </div>
+
+        <!-- ── Tab navigation bar ── -->
+        <div class="aki-dashboard-tabs bg-white border-bottom px-4 py-2">
+            <ul class="nav nav-tabs border-0 w-100" role="tablist">
+                <t t-foreach="tabs" t-as="tab" t-key="tab.id">
+                    <li class="nav-item flex-fill" role="presentation">
+                        <button
+                            class="aki-tab-btn nav-link w-100"
+                            t-att-class="{ active: isActive(tab.id) }"
+                            t-on-click="() => selectTab(tab.id)"
+                            type="button"
+                            role="tab"
+                            t-att-aria-selected="isActive(tab.id) ? 'true' : 'false'">
+                            <t t-esc="tab.label" />
+                        </button>
+                    </li>
+                </t>
+            </ul>
+        </div>
+
+        <!-- ── Tab content area ── -->
+        <div class="aki-dashboard-content flex-grow-1 p-4" style="overflow-y: auto;">
+
+            <!-- Main -->
+            <t t-if="isActive('main')">
+                <div class="aki-tab-pane aki-main-dashboard">
+                    <div class="aki-main-toolbar d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h5 class="mb-1">Business Activity Overview</h5>
+                            <p class="mb-0 text-muted">Sales, purchase, approvals and expense activity for <t t-esc="companyScopeLabel" />.</p>
+                        </div>
+
+                        <div class="aki-date-filter d-flex flex-wrap align-items-end gap-2">
+                            <div class="aki-filter-field">
+                                <label class="form-label mb-1">From</label>
+                                <input class="form-control form-control-sm" type="date" t-att-value="state.dateFrom" t-on-change="updateDateFrom" />
+                            </div>
+                            <div class="aki-filter-field">
+                                <label class="form-label mb-1">To</label>
+                                <input class="form-control form-control-sm" type="date" t-att-value="state.dateTo" t-on-change="updateDateTo" />
+                            </div>
+                            <div class="aki-period-switch btn-group btn-group-sm" role="group">
+                                <button class="btn" t-att-class="state.period === 'today' ? 'btn-primary' : 'btn-outline-primary'" t-on-click="() => setPeriod('today')" type="button">Today</button>
+                                <button class="btn" t-att-class="state.period === 'week' ? 'btn-primary' : 'btn-outline-primary'" t-on-click="() => setPeriod('week')" type="button">Week</button>
+                                <button class="btn" t-att-class="state.period === 'month' ? 'btn-primary' : 'btn-outline-primary'" t-on-click="() => setPeriod('month')" type="button">Month</button>
+                                <button class="btn" t-att-class="state.period === 'quarter' ? 'btn-primary' : 'btn-outline-primary'" t-on-click="() => setPeriod('quarter')" type="button">Quarter</button>
+                                <button class="aki-apply-filter btn btn-primary" t-att-disabled="!state.filterDirty" t-on-click="applyDateFilter" type="button">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aki-command-strip mb-4">
+                        <t t-foreach="systemSignals" t-as="signal" t-key="signal.label">
+                            <div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone">
+                                <i t-att-class="'fa ' + signal.icon" />
+                                <span t-esc="signal.label" />
+                                <strong t-esc="signal.value" />
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="aki-kpi-grid mb-4">
+                        <t t-foreach="kpiCards" t-as="card" t-key="card.label">
+                            <div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone">
+                                <div class="aki-kpi-icon">
+                                    <i t-att-class="'fa ' + card.icon" />
+                                </div>
+                                <div>
+                                    <span class="aki-kpi-label" t-esc="card.label" />
+                                    <strong class="aki-kpi-value" t-esc="card.value" />
+                                    <span class="aki-kpi-delta" t-esc="card.delta" />
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Sales Order Activity</h6>
+                                    <span>Weekly order volume</span>
+                                </div>
+                                <strong>448 Orders</strong>
+                            </div>
+                            <div class="aki-column-chart">
+                                <t t-foreach="salesTrend" t-as="item" t-key="item.label">
+                                    <div class="aki-column-item">
+                                        <div class="aki-column-track">
+                                            <div class="aki-column-bar" t-att-style="barHeight(item.value, maxSalesValue)">
+                                                <span t-esc="item.value" />
+                                            </div>
+                                        </div>
+                                        <small t-esc="item.label" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Activity Mix</h6>
+                                    <span>Share by operation</span>
+                                </div>
+                            </div>
+                            <div class="aki-donut-wrap">
+                                <div class="aki-donut" t-att-style="activityDonutStyle">
+                                    <div class="aki-donut-core">
+                                        <strong>100%</strong>
+                                        <span>Total</span>
+                                    </div>
+                                </div>
+                                <div class="aki-legend-list">
+                                    <t t-foreach="activityMix" t-as="item" t-key="item.label">
+                                        <div class="aki-legend-item">
+                                            <span class="aki-dot" t-att-style="colorStyle(item.color)" />
+                                            <span t-esc="item.label" />
+                                            <strong><t t-esc="item.value" />%</strong>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Pending Approvals</h6>
+                                    <span>Open requests by type</span>
+                                </div>
+                                <strong>27</strong>
+                            </div>
+                            <div class="aki-horizontal-chart">
+                                <t t-foreach="approvals" t-as="item" t-key="item.label">
+                                    <div class="aki-hbar-row">
+                                        <span t-esc="item.label" />
+                                        <div class="aki-hbar-track">
+                                            <div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxApprovalValue) + colorStyle(item.color)" />
+                                        </div>
+                                        <strong t-esc="item.value" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Expense Overview</h6>
+                                    <span>Submitted amount by category</span>
+                                </div>
+                                <strong>48.6K</strong>
+                            </div>
+                            <div class="aki-horizontal-chart aki-expense-chart">
+                                <t t-foreach="expenses" t-as="item" t-key="item.label">
+                                    <div class="aki-hbar-row">
+                                        <span t-esc="item.label" />
+                                        <div class="aki-hbar-track">
+                                            <div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxExpenseValue) + colorStyle(item.color)" />
+                                        </div>
+                                        <strong t-esc="item.display" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Sales Pipeline</h6>
+                                    <span>Document progression</span>
+                                </div>
+                            </div>
+                            <div class="aki-funnel-chart">
+                                <t t-foreach="pipeline" t-as="item" t-key="item.label">
+                                    <div class="aki-funnel-row" t-att-style="barWidth(item.value, maxPipelineValue) + colorStyle(item.color)">
+                                        <span t-esc="item.label" />
+                                        <strong t-esc="item.value" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Purchase Overview</h6>
+                                    <span>RFQs, confirmed orders and amount by procurement stream</span>
+                                </div>
+                                <strong>157.9K</strong>
+                            </div>
+                            <div class="aki-table-wrap">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Stream</th>
+                                            <th class="text-end">RFQs</th>
+                                            <th class="text-end">Confirmed</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="purchaseOverview" t-as="row" t-key="row.vendor">
+                                            <tr>
+                                                <td t-esc="row.vendor" />
+                                                <td class="text-end" t-esc="row.rfq" />
+                                                <td class="text-end" t-esc="row.confirmed" />
+                                                <td class="text-end fw-semibold" t-esc="row.amount" />
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel aki-panel-wide aki-neon-area-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Revenue vs Expense Flow</h6>
+                                    <span>Monthly operational movement</span>
+                                </div>
+                                <strong>+42.1K Net</strong>
+                            </div>
+                            <div class="aki-grouped-chart">
+                                <t t-foreach="cashflowSeries" t-as="item" t-key="item.label">
+                                    <div class="aki-grouped-item">
+                                        <div class="aki-pair-bars">
+                                            <span class="aki-pair-bar aki-income-bar" t-att-style="barHeight(item.income, maxCashflowValue)" />
+                                            <span class="aki-pair-bar aki-expense-bar" t-att-style="barHeight(item.expense, maxCashflowValue)" />
+                                        </div>
+                                        <small t-esc="item.label" />
+                                    </div>
+                                </t>
+                            </div>
+                            <div class="aki-mini-legend justify-content-center mt-3">
+                                <span><i class="aki-mini-dot aki-income-dot" />Income</span>
+                                <span><i class="aki-mini-dot aki-expense-dot" />Expense</span>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Performance Rings</h6>
+                                    <span>Conversion, fulfillment and approval SLA</span>
+                                </div>
+                            </div>
+                            <div class="aki-radial-grid">
+                                <t t-foreach="radialMetrics" t-as="item" t-key="item.label">
+                                    <div class="aki-radial-card">
+                                        <div class="aki-radial-ring" t-att-style="ringStyle(item)">
+                                            <strong t-esc="item.display" />
+                                        </div>
+                                        <span t-esc="item.label" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Invoice Status Stack</h6>
+                                    <span>Paid, open and overdue split</span>
+                                </div>
+                                <strong>119</strong>
+                            </div>
+                            <div class="aki-stacked-chart">
+                                <div class="aki-stack-track">
+                                    <t t-foreach="invoiceStatus" t-as="item" t-key="item.label">
+                                        <span class="aki-stack-segment" t-att-style="statusWidth(item.value) + colorStyle(item.color)" />
+                                    </t>
+                                </div>
+                                <div class="aki-stack-list">
+                                    <t t-foreach="invoiceStatus" t-as="item" t-key="item.label">
+                                        <div>
+                                            <span class="aki-dot" t-att-style="colorStyle(item.color)" />
+                                            <span t-esc="item.label" />
+                                            <strong><t t-esc="item.value" />% / <t t-esc="item.amount" /></strong>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Activity Heatmap</h6>
+                                    <span>Workload intensity by day</span>
+                                </div>
+                            </div>
+                            <div class="aki-heatmap-grid">
+                                <t t-foreach="activityHeatmap" t-as="item" t-key="item_index">
+                                    <div class="aki-heat-cell" t-att-style="heatStyle(item.value)">
+                                        <strong t-esc="item.value" />
+                                        <span t-esc="item.day" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Approval Flow Timeline</h6>
+                                    <span>Request movement through approval stages</span>
+                                </div>
+                            </div>
+                            <div class="aki-timeline-chart">
+                                <t t-foreach="approvalTimeline" t-as="item" t-key="item.label">
+                                    <div class="aki-timeline-step">
+                                        <div class="aki-timeline-node" t-att-style="colorStyle(item.color)">
+                                            <span t-esc="item.value" />
+                                        </div>
+                                        <div class="aki-timeline-fill">
+                                            <span t-att-style="barWidth(item.value, maxTimelineValue) + colorStyle(item.color)" />
+                                        </div>
+                                        <strong t-esc="item.label" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Control Alerts</h6>
+                                    <span>Operational signals needing attention</span>
+                                </div>
+                            </div>
+                            <div class="aki-risk-grid">
+                                <t t-foreach="riskIndicators" t-as="item" t-key="item.label">
+                                    <div class="aki-risk-card" t-att-class="'aki-tone-' + item.tone">
+                                        <strong t-esc="item.value" />
+                                        <span t-esc="item.label" />
+                                        <small t-esc="item.note" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+
+                        <section class="aki-panel aki-radar-panel">
+                            <div class="aki-panel-head">
+                                <div>
+                                    <h6>Operational Balance</h6>
+                                    <span>Cross-functional health radar</span>
+                                </div>
+                            </div>
+                            <div class="aki-radar-wrap">
+                                <svg viewBox="0 0 220 220" aria-hidden="true">
+                                    <polygon points="110,16 199,68 199,152 110,204 21,152 21,68" class="aki-radar-grid-line" />
+                                    <polygon points="110,49 170,84 170,136 110,171 50,136 50,84" class="aki-radar-grid-line" />
+                                    <polygon points="110,82 140,99 140,121 110,138 80,121 80,99" class="aki-radar-grid-line" />
+                                    <line x1="110" y1="16" x2="110" y2="204" class="aki-radar-axis" />
+                                    <line x1="21" y1="68" x2="199" y2="152" class="aki-radar-axis" />
+                                    <line x1="199" y1="68" x2="21" y2="152" class="aki-radar-axis" />
+                                    <polygon points="110,30 182,77 169,134 110,181 45,145 55,78" class="aki-radar-shape" />
+                                    <circle cx="110" cy="30" r="4" class="aki-radar-dot" />
+                                    <circle cx="182" cy="77" r="4" class="aki-radar-dot" />
+                                    <circle cx="169" cy="134" r="4" class="aki-radar-dot" />
+                                    <circle cx="110" cy="181" r="4" class="aki-radar-dot" />
+                                    <circle cx="45" cy="145" r="4" class="aki-radar-dot" />
+                                    <circle cx="55" cy="78" r="4" class="aki-radar-dot" />
+                                </svg>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Sales -->
+            <t t-elif="isActive('sales')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4">
+                        <h5 class="mb-1">Sales Dashboard</h5>
+                        <p class="mb-0 text-muted">Sales orders, quotations, channel mix, customer revenue and conversion activity.</p>
+                    </div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4">
+                        <t t-foreach="salesTabKpis" t-as="card" t-key="card.label">
+                            <div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone">
+                                <div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div>
+                                <div>
+                                    <span class="aki-kpi-label" t-esc="card.label" />
+                                    <strong class="aki-kpi-value" t-esc="card.value" />
+                                    <span class="aki-kpi-delta" t-esc="card.delta" />
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head"><div><h6>Revenue Trend</h6><span>Monthly confirmed sales</span></div><strong>428K</strong></div>
+                            <div class="aki-column-chart">
+                                <t t-foreach="salesRevenue" t-as="item" t-key="item.label">
+                                    <div class="aki-column-item">
+                                        <div class="aki-column-track"><div class="aki-column-bar" t-att-style="barHeight(item.value, maxValue(salesRevenue))"><span t-esc="item.value" /></div></div>
+                                        <small t-esc="item.label" />
+                                    </div>
+                                </t>
+                            </div>
+                        </section>
+                        <section class="aki-panel">
+                            <div class="aki-panel-head"><div><h6>Sales Channel Mix</h6><span>Orders by source</span></div></div>
+                            <div class="aki-donut-wrap">
+                                <div class="aki-donut" t-att-style="donutStyle(salesChannels)"><div class="aki-donut-core"><strong>100%</strong><span>Sales</span></div></div>
+                                <div class="aki-legend-list">
+                                    <t t-foreach="salesChannels" t-as="item" t-key="item.label">
+                                        <div class="aki-legend-item"><span class="aki-dot" t-att-style="colorStyle(item.color)" /><span t-esc="item.label" /><strong><t t-esc="item.value" />%</strong></div>
+                                    </t>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head"><div><h6>Top Customers</h6><span>Revenue and margin contribution</span></div></div>
+                            <div class="aki-table-wrap">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead><tr><th>Customer</th><th class="text-end">Orders</th><th class="text-end">Revenue</th><th class="text-end">Margin</th></tr></thead>
+                                    <tbody>
+                                        <t t-foreach="salesTopCustomers" t-as="row" t-key="row.name">
+                                            <tr><td t-esc="row.name" /><td class="text-end" t-esc="row.orders" /><td class="text-end fw-semibold" t-esc="row.revenue" /><td class="text-end" t-esc="row.margin" /></tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <section class="aki-panel">
+                            <div class="aki-panel-head"><div><h6>Pipeline Funnel</h6><span>Quotation to invoice movement</span></div></div>
+                            <div class="aki-funnel-chart">
+                                <t t-foreach="pipeline" t-as="item" t-key="item.label">
+                                    <div class="aki-funnel-row" t-att-style="barWidth(item.value, maxPipelineValue) + colorStyle(item.color)"><span t-esc="item.label" /><strong t-esc="item.value" /></div>
+                                </t>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Purchase -->
+            <t t-elif="isActive('purchase')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4"><h5 class="mb-1">Purchase Dashboard</h5><p class="mb-0 text-muted">RFQs, purchase orders, vendor performance, spend distribution and procurement aging.</p></div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4">
+                        <t t-foreach="purchaseTabKpis" t-as="card" t-key="card.label">
+                            <div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone"><div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div><div><span class="aki-kpi-label" t-esc="card.label" /><strong class="aki-kpi-value" t-esc="card.value" /><span class="aki-kpi-delta" t-esc="card.delta" /></div></div>
+                        </t>
+                    </div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel">
+                            <div class="aki-panel-head"><div><h6>Spend by Category</h6><span>Purchase value split</span></div><strong>236K</strong></div>
+                            <div class="aki-horizontal-chart">
+                                <t t-foreach="purchaseSpend" t-as="item" t-key="item.label">
+                                    <div class="aki-hbar-row"><span t-esc="item.label" /><div class="aki-hbar-track"><div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxValue(purchaseSpend)) + colorStyle(item.color)" /></div><strong t-esc="item.value" /></div>
+                                </t>
+                            </div>
+                        </section>
+                        <section class="aki-panel">
+                            <div class="aki-panel-head"><div><h6>RFQ to PO Flow</h6><span>Procurement conversion</span></div></div>
+                            <div class="aki-funnel-chart">
+                                <div class="aki-funnel-row" style="width: 100%; background: #38bdf8;"><span>RFQ</span><strong>118</strong></div>
+                                <div class="aki-funnel-row" style="width: 82%; background: #34d399;"><span>Approved</span><strong>97</strong></div>
+                                <div class="aki-funnel-row" style="width: 73%; background: #a78bfa;"><span>PO</span><strong>86</strong></div>
+                                <div class="aki-funnel-row" style="width: 49%; background: #facc15;"><span>Received</span><strong>58</strong></div>
+                            </div>
+                        </section>
+                        <section class="aki-panel aki-panel-wide">
+                            <div class="aki-panel-head"><div><h6>Vendor Performance</h6><span>Confirmed orders, on-time rate and value</span></div></div>
+                            <div class="aki-table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Vendor</th><th class="text-end">POs</th><th class="text-end">On Time</th><th class="text-end">Value</th></tr></thead><tbody><t t-foreach="purchaseVendors" t-as="row" t-key="row.name"><tr><td t-esc="row.name" /><td class="text-end" t-esc="row.po" /><td class="text-end" t-esc="row.onTime" /><td class="text-end fw-semibold" t-esc="row.value" /></tr></t></tbody></table></div>
+                        </section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Approval -->
+            <t t-elif="isActive('approval')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4"><h5 class="mb-1">Approval Dashboard</h5><p class="mb-0 text-muted">Pending approvals, SLA health, queue aging and approval flow movement.</p></div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4"><t t-foreach="approvalTabKpis" t-as="card" t-key="card.label"><div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone"><div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div><div><span class="aki-kpi-label" t-esc="card.label" /><strong class="aki-kpi-value" t-esc="card.value" /><span class="aki-kpi-delta" t-esc="card.delta" /></div></div></t></div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel aki-panel-wide"><div class="aki-panel-head"><div><h6>Approval Flow Timeline</h6><span>Requests across approval stages</span></div></div><div class="aki-timeline-chart"><t t-foreach="approvalTimeline" t-as="item" t-key="item.label"><div class="aki-timeline-step"><div class="aki-timeline-node" t-att-style="colorStyle(item.color)"><span t-esc="item.value" /></div><div class="aki-timeline-fill"><span t-att-style="barWidth(item.value, maxTimelineValue) + colorStyle(item.color)" /></div><strong t-esc="item.label" /></div></t></div></section>
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Pending by Type</h6><span>Open approval requests</span></div><strong>27</strong></div><div class="aki-horizontal-chart"><t t-foreach="approvals" t-as="item" t-key="item.label"><div class="aki-hbar-row"><span t-esc="item.label" /><div class="aki-hbar-track"><div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxApprovalValue) + colorStyle(item.color)" /></div><strong t-esc="item.value" /></div></t></div></section>
+                        <section class="aki-panel aki-panel-wide"><div class="aki-panel-head"><div><h6>Approval Queue</h6><span>Owner, pending count and aging</span></div></div><div class="aki-table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Type</th><th>Owner</th><th class="text-end">Pending</th><th class="text-end">Aging</th></tr></thead><tbody><t t-foreach="approvalQueue" t-as="row" t-key="row.type"><tr><td t-esc="row.type" /><td t-esc="row.owner" /><td class="text-end fw-semibold" t-esc="row.pending" /><td class="text-end" t-esc="row.aging" /></tr></t></tbody></table></div></section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Invoice -->
+            <t t-elif="isActive('invoice')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4"><h5 class="mb-1">Invoice Dashboard</h5><p class="mb-0 text-muted">Paid, open and overdue invoices with aging and customer receivable details.</p></div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4"><t t-foreach="invoiceTabKpis" t-as="card" t-key="card.label"><div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone"><div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div><div><span class="aki-kpi-label" t-esc="card.label" /><strong class="aki-kpi-value" t-esc="card.value" /><span class="aki-kpi-delta" t-esc="card.delta" /></div></div></t></div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Status Stack</h6><span>Invoice status composition and amount</span></div><strong>119</strong></div><div class="aki-stacked-chart"><div class="aki-stack-track"><t t-foreach="invoiceStatus" t-as="item" t-key="item.label"><span class="aki-stack-segment" t-att-style="statusWidth(item.value) + colorStyle(item.color)" /></t></div><div class="aki-stack-list"><t t-foreach="invoiceStatus" t-as="item" t-key="item.label"><div><span class="aki-dot" t-att-style="colorStyle(item.color)" /><span t-esc="item.label" /><strong><t t-esc="item.value" />% / <t t-esc="item.amount" /></strong></div></t></div></div></section>
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Aging Buckets</h6><span>Receivables by due period</span></div></div><div class="aki-horizontal-chart"><t t-foreach="invoiceAging" t-as="item" t-key="item.label"><div class="aki-hbar-row"><span t-esc="item.label" /><div class="aki-hbar-track"><div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxValue(invoiceAging)) + colorStyle(item.color)" /></div><strong><t t-esc="item.value" />%</strong></div></t></div></section>
+                        <section class="aki-panel aki-panel-wide"><div class="aki-panel-head"><div><h6>Customer Receivables</h6><span>Due, overdue and collection status</span></div></div><div class="aki-table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Customer</th><th class="text-end">Due</th><th class="text-end">Overdue</th><th class="text-end">Status</th></tr></thead><tbody><t t-foreach="invoiceCustomers" t-as="row" t-key="row.name"><tr><td t-esc="row.name" /><td class="text-end fw-semibold" t-esc="row.due" /><td class="text-end" t-esc="row.overdue" /><td class="text-end" t-esc="row.status" /></tr></t></tbody></table></div></section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Expenses -->
+            <t t-elif="isActive('expenses')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4"><h5 class="mb-1">Expenses Dashboard</h5><p class="mb-0 text-muted">Submitted expenses, approval status, policy alerts and employee/category breakdowns.</p></div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4"><t t-foreach="expenseTabKpis" t-as="card" t-key="card.label"><div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone"><div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div><div><span class="aki-kpi-label" t-esc="card.label" /><strong class="aki-kpi-value" t-esc="card.value" /><span class="aki-kpi-delta" t-esc="card.delta" /></div></div></t></div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Expense Categories</h6><span>Submitted amount split</span></div><strong>48.6K</strong></div><div class="aki-horizontal-chart"><t t-foreach="expenses" t-as="item" t-key="item.label"><div class="aki-hbar-row"><span t-esc="item.label" /><div class="aki-hbar-track"><div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxExpenseValue) + colorStyle(item.color)" /></div><strong t-esc="item.display" /></div></t></div></section>
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Approval Mix</h6><span>Expense approval status</span></div></div><div class="aki-donut-wrap"><div class="aki-donut" style="background: conic-gradient(#34d399 0% 74%, #facc15 74% 93%, #fb7185 93% 100%);"><div class="aki-donut-core"><strong>74%</strong><span>Approved</span></div></div><div class="aki-legend-list"><div class="aki-legend-item"><span class="aki-dot" style="background:#34d399;" /><span>Approved</span><strong>74%</strong></div><div class="aki-legend-item"><span class="aki-dot" style="background:#facc15;" /><span>Pending</span><strong>19%</strong></div><div class="aki-legend-item"><span class="aki-dot" style="background:#fb7185;" /><span>Alert</span><strong>7%</strong></div></div></div></section>
+                        <section class="aki-panel aki-panel-wide"><div class="aki-panel-head"><div><h6>Employee Expense Queue</h6><span>Recent submissions and review state</span></div></div><div class="aki-table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Employee</th><th>Category</th><th class="text-end">Amount</th><th class="text-end">State</th></tr></thead><tbody><t t-foreach="expenseEmployees" t-as="row" t-key="row.name"><tr><td t-esc="row.name" /><td t-esc="row.category" /><td class="text-end fw-semibold" t-esc="row.amount" /><td class="text-end" t-esc="row.state" /></tr></t></tbody></table></div></section>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Inventory -->
+            <t t-elif="isActive('inventory')">
+                <div class="aki-tab-pane aki-sub-dashboard">
+                    <div class="aki-section-header mb-4"><h5 class="mb-1">Inventory Dashboard</h5><p class="mb-0 text-muted">Stock value, warehouse movements, low-stock alerts and product availability.</p></div>
+                    <div class="aki-command-strip mb-4"><t t-foreach="systemSignals" t-as="signal" t-key="signal.label"><div class="aki-signal-chip" t-att-class="'aki-tone-' + signal.tone"><i t-att-class="'fa ' + signal.icon" /><span t-esc="signal.label" /><strong t-esc="signal.value" /></div></t></div>
+                    <div class="aki-kpi-grid mb-4"><t t-foreach="inventoryTabKpis" t-as="card" t-key="card.label"><div class="aki-kpi-card" t-att-class="'aki-tone-' + card.tone"><div class="aki-kpi-icon"><i t-att-class="'fa ' + card.icon" /></div><div><span class="aki-kpi-label" t-esc="card.label" /><strong class="aki-kpi-value" t-esc="card.value" /><span class="aki-kpi-delta" t-esc="card.delta" /></div></div></t></div>
+                    <div class="aki-dashboard-grid">
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Warehouse Moves</h6><span>Receipts, deliveries and transfers</span></div></div><div class="aki-horizontal-chart"><t t-foreach="inventoryMoves" t-as="item" t-key="item.label"><div class="aki-hbar-row"><span t-esc="item.label" /><div class="aki-hbar-track"><div class="aki-hbar-fill" t-att-style="barWidth(item.value, maxValue(inventoryMoves)) + colorStyle(item.color)" /></div><strong t-esc="item.value" /></div></t></div></section>
+                        <section class="aki-panel"><div class="aki-panel-head"><div><h6>Stock Health</h6><span>Low stock vs available items</span></div></div><div class="aki-radial-grid"><div class="aki-radial-card"><div class="aki-radial-ring" style="background: conic-gradient(#34d399 84%, rgba(148, 163, 184, 0.14) 0);"><strong>84%</strong></div><span>Available</span></div><div class="aki-radial-card"><div class="aki-radial-ring" style="background: conic-gradient(#facc15 12%, rgba(148, 163, 184, 0.14) 0);"><strong>12%</strong></div><span>Low</span></div><div class="aki-radial-card"><div class="aki-radial-ring" style="background: conic-gradient(#fb7185 4%, rgba(148, 163, 184, 0.14) 0);"><strong>4%</strong></div><span>Out</span></div></div></section>
+                        <section class="aki-panel aki-panel-wide"><div class="aki-panel-head"><div><h6>Product Availability</h6><span>On-hand quantity against minimum level</span></div></div><div class="aki-table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Product</th><th class="text-end">On Hand</th><th class="text-end">Min</th><th class="text-end">Status</th></tr></thead><tbody><t t-foreach="inventoryProducts" t-as="row" t-key="row.name"><tr><td t-esc="row.name" /><td class="text-end fw-semibold" t-esc="row.onHand" /><td class="text-end" t-esc="row.min" /><td class="text-end" t-esc="row.status" /></tr></t></tbody></table></div></section>
+                    </div>
+                </div>
+            </t>
+
+        </div>
+    </div>
+</t>
+
+</templates>
